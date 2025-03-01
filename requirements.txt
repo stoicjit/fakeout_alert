@@ -2,3 +2,4 @@ tradingview-ta
 requests
 beautifulsoup4
 lxml
+numpy
