@@ -1,34 +1,56 @@
-from numpy.ma.core import append
-from telegram import Bot
-from tradingview_ta import TA_Handler, Interval, Exchange
-import datetime
+import psycopg2
+from tradingview_ta import TA_Handler, Interval
 import time
 
-# Define the trading pair and exchange
+# PostgreSQL connection
+DB_URL = "postgresql://postgres:IBlWSdKzrIVmbcpiiSKoLXHDhRdOZuwj@metro.proxy.rlwy.net:44305/railway"  # Replace with your Railway PostgreSQL URL
+conn = psycopg2.connect(DB_URL)
+cursor = conn.cursor()
+
+# Define symbols
 symbols = ["BTCUSD", "ETHUSD", "LTCUSD"]
-exchange = "COINBASE"  # Use your preferred exchange
+exchange = "COINBASE"
 
-def daily_ohlc_data():
-# Fetch TradingView OHLC Data
+# Create a table if it doesn’t exist
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ohlc_data (
+        id SERIAL PRIMARY KEY,
+        symbol TEXT,
+        high FLOAT,
+        low FLOAT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+""")
+conn.commit()
+
+def store_ohlc_data():
     for symbol in symbols:
-        ta = TA_Handler(
-            symbol=symbol,
-            exchange=exchange,
-            screener="crypto",
-            interval=Interval.INTERVAL_1_HOUR,  # Choose the timeframe (e.g., 1h, 1d)
-        )
-# Get the latest OHLC data
-        analysis = ta.get_analysis()
-        print("High:", analysis.indicators["high"])
-        print("Low:", analysis.indicators["low"])
-        high = str(analysis.indicators["high"])
-        low = str(analysis.indicators["low"])
-#Save the OHLC data
-        lows_list = open(f"lows_of_{symbol}.txt", 'a')
-        lows_list.write(f' {low},')
-        lows_list.close()
-        highs_list = open(f"highs_of_{symbol}.txt", 'a')
-        highs_list.write(f' {high},')
-        highs_list.close()
+        try:
+            ta = TA_Handler(
+                symbol=symbol,
+                exchange=exchange,
+                screener="crypto",
+                interval=Interval.INTERVAL_1_HOUR,
+            )
+            analysis = ta.get_analysis()
+            high = analysis.indicators.get("high", None)
+            low = analysis.indicators.get("low", None)
 
-daily_ohlc_data()
+            print(f"{symbol} - High: {high}, Low: {low}")
+
+            # Insert into PostgreSQL
+            cursor.execute("INSERT INTO ohlc_data (symbol, high, low) VALUES (%s, %s, %s)", 
+                           (symbol, high, low))
+            conn.commit()
+
+            time.sleep(2)  # Prevent rate-limiting
+
+        except Exception as e:
+            print(f"Error fetching data for {symbol}: {e}")
+
+# Run the function
+store_ohlc_data()
+
+# Close connection
+cursor.close()
+conn.close()
