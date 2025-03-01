@@ -1,1 +1,4 @@
-tradingview_ta
+tradingview-ta
+requests
+beautifulsoup4
+lxml
