@@ -4,3 +4,4 @@ beautifulsoup4
 lxml
 numpy
 python-telegram-bot
+psycopg2
