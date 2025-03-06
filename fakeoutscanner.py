@@ -2,6 +2,14 @@ from asyncio import sleep
 import psycopg2
 from tradingview_ta import TA_Handler, Interval
 import time
+import asyncio
+from telegram import Bot
+
+# Telegram Bot Credentials
+bot_token = os.getenv('BOT_TOKEN')  # Replace with your Telegram bot token
+CHAT_ID = os.getenv('CHAT_ID')  # Replace with your Telegram chat ID
+bot = Bot(token=bot_token)
+
 
 # PostgreSQL connection
 DB_URL = "postgresql://postgres:IBlWSdKzrIVmbcpiiSKoLXHDhRdOZuwj@metro.proxy.rlwy.net:44305/railway"  # Replace with your Railway PostgreSQL URL
@@ -63,9 +71,15 @@ def compare(high, low, close):
             rows = cursor.fetchall()
             for row in rows:
                 if high > row[2] and close < row[2]:
-                    print('yes')
+                    async def send_telegram_message():
+                        message = f'{symbol} just fakedout a {direction}'
+                        await bot.send_message(chat_id=CHAT_ID, text=message)
+                    asyncio.run(send_telegram_message())
                 elif low < row[2] and close > row[2]:
-                    print('oui')
+                    async def send_telegram_message():
+                        message = f'{symbol} just fakedout a {direction}'
+                        await bot.send_message(chat_id=CHAT_ID, text=message)
+                    asyncio.run(send_telegram_message())
 
 
 def h_ohlc(symbol):
