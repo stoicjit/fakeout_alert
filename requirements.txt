@@ -1,5 +1,1 @@
-tradingview-ta
-psycopg2
-asyncio
-time
 
