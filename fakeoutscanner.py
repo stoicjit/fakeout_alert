@@ -18,7 +18,7 @@ conn = psycopg2.connect(DB_URL)
 cursor = conn.cursor()
 
 # Define symbols
-symbols = ["BTCUSD", "ETHUSD", "LTCUSD","XRPUSD", "DOGEUSD","DOTUSD","ADAUSD","XMRUSD"]
+symbols = ["BTCUSD", "ETHUSD", "LTCUSD","XRPUSD", "DOGEUSD","DOTUSD","ADAUSD"]
 exchange = "COINBASE"
 directions = ['high','low']
 
@@ -53,17 +53,31 @@ def store_daily_data(symbol, direction):
 
             time.sleep(2)  # Prevent rate-limiting
 
-def filter(symbol,direction):
+def filter_highs(symbol):
     #Read data
-    cursor.execute(f"SELECT * FROM {direction}_data{symbol}")
+    cursor.execute(f"SELECT * FROM high_data{symbol}")
     rows = cursor.fetchall()
-    #Keep the significant levels
-    for row in rows:
-        if row[2] < rows[-1][2]:
+    #Keep the significant highs
+    for row in rows[0:-1]:
+        print(f"symbol: {symbol}, row: {row}, price: {row[2]}, last price: {rows[-1][2]}")
+        if row[2] <= rows[-1][2]:
             row_id = row[0]
-            cursor.execute(f"DELETE FROM {direction}_data{symbol} WHERE id = %s", (row_id,))
+            cursor.execute(f"DELETE FROM high_data{symbol} WHERE id = %s", (row_id,))
             conn.commit()
             print(f"Deleted row with ID {row_id}!")
+            
+def filter_lows(symbol):
+    #Read data
+    cursor.execute(f"SELECT * FROM low_data{symbol}")
+    rows = cursor.fetchall()
+    #Keep the significant levels
+    for row in rows[0:-1]:
+        if row[2] >= rows[-1][2]:
+            row_id = row[0]
+            cursor.execute(f"DELETE FROM low_data{symbol} WHERE id = %s", (row_id,))
+            conn.commit()
+            print(f"Deleted row with ID {row_id}!")
+
 
 def compare(high, low, close):
     for symbol in symbols:
@@ -106,7 +120,8 @@ if time.localtime()[3] == 18:
         for direction in directions:
             create_ohlc_table(symbol,direction)
             store_daily_data(symbol,direction)
-            filter(symbol,direction)
+        filter_highs(symbol)
+        filter_lows(symbol)
 for symbol in symbols:            
     high, low, close = h_ohlc(symbol)
     compare(high, low, close)
