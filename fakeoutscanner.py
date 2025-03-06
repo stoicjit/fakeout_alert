@@ -92,9 +92,8 @@ if time.localtime()[3] == 18:
             create_ohlc_table(symbol,direction)
             store_daily_data(symbol,direction)
             filter(symbol,direction)
-
-high, low, close = h_ohlc(symbol)
-compare(high, low, close)
+    high, low, close = h_ohlc(symbol)
+    compare(high, low, close)
 
 # Close connection
 cursor.close()
