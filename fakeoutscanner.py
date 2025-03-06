@@ -18,7 +18,7 @@ conn = psycopg2.connect(DB_URL)
 cursor = conn.cursor()
 
 # Define symbols
-symbols = ["BTCUSD", "ETHUSD", "LTCUSD","XRPUSD", "DOGEUSD","DOTUSD"]
+symbols = ["BTCUSD", "ETHUSD", "LTCUSD","XRPUSD", "DOGEUSD","DOTUSD","ADAUSD","XMRUSD"]
 exchange = "COINBASE"
 directions = ['high','low']
 
