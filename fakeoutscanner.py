@@ -107,6 +107,7 @@ if time.localtime()[3] == 18:
             create_ohlc_table(symbol,direction)
             store_daily_data(symbol,direction)
             filter(symbol,direction)
+for symbol in symbols:            
     high, low, close = h_ohlc(symbol)
     compare(high, low, close)
 
