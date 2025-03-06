@@ -5,3 +5,6 @@ lxml
 numpy
 python-telegram-bot
 psycopg2
+pyexpat.errors
+asyncio
+time
