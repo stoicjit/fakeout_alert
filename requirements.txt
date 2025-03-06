@@ -1,6 +1,5 @@
 tradingview-ta
 psycopg2
-pyexpat.errors
 asyncio
 time
 
