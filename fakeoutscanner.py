@@ -4,6 +4,7 @@ from tradingview_ta import TA_Handler, Interval
 import time
 import asyncio
 from telegram import Bot
+import os
 
 # Telegram Bot Credentials
 bot_token = os.getenv('BOT_TOKEN')  # Replace with your Telegram bot token
