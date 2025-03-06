@@ -1,6 +1,5 @@
 from asyncio import sleep
 import psycopg2
-from pyexpat.errors import messages
 from tradingview_ta import TA_Handler, Interval
 import time
 
@@ -27,7 +26,6 @@ def create_ohlc_table(symbol,direction):
     conn.commit()
 
 def store_daily_data(symbol, direction):
-        try:
             ta = TA_Handler(
                 symbol=symbol,
                 exchange=exchange,
@@ -45,9 +43,6 @@ def store_daily_data(symbol, direction):
             conn.commit()
 
             time.sleep(2)  # Prevent rate-limiting
-
-        except Exception as e:
-            print(f"Error fetching data for {symbol}: {e}")
 
 def filter(symbol,direction):
     #Read data
