@@ -18,12 +18,13 @@ conn = psycopg2.connect(DB_URL)
 cursor = conn.cursor()
 
 # Define symbols
-symbols = ["BTCUSD", "ETHUSD", "LTCUSD","XRPUSD", "DOGEUSD","DOTUSD","ADAUSD"]
+symbols = ["BTCUSD", "ETHUSD", "LTCUSD", "XRPUSD", "DOGEUSD", "DOTUSD", "ADAUSD"]
 exchange = "COINBASE"
-directions = ['high','low']
+directions = ['high', 'low']
+
 
 # Create a table if it doesn’t exist
-def create_ohlc_table(symbol,direction):
+def create_ohlc_table(symbol, direction):
     cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {direction}_data{symbol} (
             id SERIAL PRIMARY KEY,
@@ -34,30 +35,32 @@ def create_ohlc_table(symbol,direction):
     """)
     conn.commit()
 
+
 def store_daily_data(symbol, direction):
-            ta = TA_Handler(
-                symbol=symbol,
-                exchange=exchange,
-                screener="crypto",
-                interval=Interval.INTERVAL_1_DAY,
-            )
-            analysis = ta.get_analysis()
-            level = analysis.indicators.get(f"{direction}", None)
-            print(f"{symbol} - High: ")
+    ta = TA_Handler(
+        symbol=symbol,
+        exchange=exchange,
+        screener="crypto",
+        interval=Interval.INTERVAL_1_DAY,
+    )
+    analysis = ta.get_analysis()
+    level = analysis.indicators.get(f"{direction}", None)
+    print(f"{symbol} - {direction}: {level}")
 
-            # Insert into PostgreSQL
-            cursor.execute(f"INSERT INTO {direction}_data{symbol} (symbol, {direction}) VALUES (%s, %s)",
-                           (symbol, level))
+    # Insert into PostgreSQL
+    cursor.execute(f"INSERT INTO {direction}_data{symbol} (symbol, {direction}) VALUES (%s, %s)",
+                   (symbol, level))
 
-            conn.commit()
+    conn.commit()
 
-            time.sleep(2)  # Prevent rate-limiting
+    time.sleep(2)  # Prevent rate-limiting
+
 
 def filter_highs(symbol):
-    #Read data
+    # Read data
     cursor.execute(f"SELECT * FROM high_data{symbol}")
     rows = cursor.fetchall()
-    #Keep the significant highs
+    # Keep the significant highs
     for row in rows[0:-1]:
         print(f"symbol: {symbol}, row: {row}, price: {row[2]}, last price: {rows[-1][2]}")
         if row[2] <= rows[-1][2]:
@@ -65,12 +68,13 @@ def filter_highs(symbol):
             cursor.execute(f"DELETE FROM high_data{symbol} WHERE id = %s", (row_id,))
             conn.commit()
             print(f"Deleted row with ID {row_id}!")
-            
+
+
 def filter_lows(symbol):
-    #Read data
+    # Read data
     cursor.execute(f"SELECT * FROM low_data{symbol}")
     rows = cursor.fetchall()
-    #Keep the significant levels
+    # Keep the significant levels
     for row in rows[0:-1]:
         if row[2] >= rows[-1][2]:
             row_id = row[0]
@@ -79,49 +83,39 @@ def filter_lows(symbol):
             print(f"Deleted row with ID {row_id}!")
 
 
-def compare(high, low, close):
-    for symbol in symbols:
-        for direction in directions:
-            cursor.execute(f"SELECT * FROM {direction}_data{symbol}")
-            rows = cursor.fetchall()
-            for row in rows:
-                if high > row[2] and close < row[2]:
-                    async def send_telegram_message():
-                        message = f'{symbol} just fakedout a {direction}'
-                        await bot.send_message(chat_id=CHAT_ID, text=message)
-                    asyncio.run(send_telegram_message())
-                elif low < row[2] and close > row[2]:
-                    async def send_telegram_message():
-                        message = f'{symbol} just fakedout a {direction}'
-                        await bot.send_message(chat_id=CHAT_ID, text=message)
-                    asyncio.run(send_telegram_message())
+async def send_telegram_message(message):
+    """Sends an async Telegram message."""
+    await bot.send_message(chat_id=CHAT_ID, text=message)
 
-def compare_highs(high, close):
+
+async def compare_highs(symbol, high, close):
     cursor.execute(f"SELECT * FROM high_data{symbol}")
     rows = cursor.fetchall()
+    tasks = []
+
     for row in rows:
         print(row[2])
         if high > row[2] and close < row[2]:
-            print(f'{symbol} fakedout the high')
-            async def send_telegram_message():
-                message = f'{symbol} just fakedout a high'
-                await bot.send_message(chat_id=CHAT_ID, text=message)
+            print(f'{symbol} faked out the high')
+            message = f'{symbol} just faked out a high'
+            tasks.append(send_telegram_message(message))  # Collect tasks
 
-            asyncio.run(send_telegram_message())
+    await asyncio.gather(*tasks)  # Run all tasks concurrently
 
 
-def compare_lows(low, close):
+async def compare_lows(symbol, low, close):
     cursor.execute(f"SELECT * FROM low_data{symbol}")
     rows = cursor.fetchall()
+    tasks = []
+
     for row in rows:
         print(row[2])
         if low < row[2] and close > row[2]:
-            print(f'{symbol} fakedout a low')
-            async def send_telegram_message():
-                message = f'{symbol} just fakedout alow'
-                await bot.send_message(chat_id=CHAT_ID, text=message)
+            print(f'{symbol} faked out the low')
+            message = f'{symbol} just faked out a low'
+            tasks.append(send_telegram_message(message))  # Collect tasks
 
-            asyncio.run(send_telegram_message())
+    await asyncio.gather(*tasks)  # Run all tasks concurrently
 
 
 def h_ohlc(symbol):
@@ -139,22 +133,25 @@ def h_ohlc(symbol):
     return high, low, close
 
 
+async def main():
+    if time.localtime()[3] == 18:
+        for symbol in symbols:
+            for direction in directions:
+                create_ohlc_table(symbol, direction)
+                store_daily_data(symbol, direction)
+            filter_highs(symbol)
+            filter_lows(symbol)
 
-
-
-if time.localtime()[3] == 0:
+    tasks = []  # Collect async tasks
     for symbol in symbols:
-        for direction in directions:
-            create_ohlc_table(symbol,direction)
-            store_daily_data(symbol,direction)
-        filter_highs(symbol)
-        filter_lows(symbol)
-for symbol in symbols:            
-    high, low, close = h_ohlc(symbol)
-    print(symbol, high, low, close)
-    compare_highs(high, close)
-    compare_lows(low, close)
-print("Current time:", time.strftime("%Y-%m-%d %H:%M:%S %Z"))
+        high, low, close = h_ohlc(symbol)
+        print(symbol, high, low, close)
+        tasks.append(compare_highs(symbol, high, close))
+        tasks.append(compare_lows(symbol, low, close))
+
+    await asyncio.gather(*tasks)  # Run all Telegram messages concurrently
+
+asyncio.run(main())  # Call the main function properly
 
 # Close connection
 cursor.close()
