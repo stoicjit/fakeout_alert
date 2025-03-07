@@ -142,7 +142,7 @@ def h_ohlc(symbol):
 
 
 
-if time.localtime()[3] == 18:
+if time.localtime()[3] == 0:
     for symbol in symbols:
         for direction in directions:
             create_ohlc_table(symbol,direction)
