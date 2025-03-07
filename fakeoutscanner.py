@@ -96,6 +96,33 @@ def compare(high, low, close):
                         await bot.send_message(chat_id=CHAT_ID, text=message)
                     asyncio.run(send_telegram_message())
 
+def compare_highs(high, close):
+    cursor.execute(f"SELECT * FROM high_data{symbol}")
+    rows = cursor.fetchall()
+    for row in rows:
+        print(row[2])
+        if high > row[2] and close < row[2]:
+            print(f'{symbol} fakedout the high')
+            async def send_telegram_message():
+                message = f'{symbol} just fakedout a high'
+                await bot.send_message(chat_id=CHAT_ID, text=message)
+
+            asyncio.run(send_telegram_message())
+
+
+def compare_lows(low, close):
+    cursor.execute(f"SELECT * FROM low_data{symbol}")
+    rows = cursor.fetchall()
+    for row in rows:
+        print(row[2])
+        if low < row[2] and close > row[2]:
+            print(f'{symbol} fakedout a low')
+            async def send_telegram_message():
+                message = f'{symbol} just fakedout alow'
+                await bot.send_message(chat_id=CHAT_ID, text=message)
+
+            asyncio.run(send_telegram_message())
+
 
 def h_ohlc(symbol):
     ta = TA_Handler(
@@ -124,7 +151,10 @@ if time.localtime()[3] == 18:
         filter_lows(symbol)
 for symbol in symbols:            
     high, low, close = h_ohlc(symbol)
-    compare(high, low, close)
+    print(symbol, high, low, close)
+    compare_highs(high, close)
+    compare_lows(low, close)
+print("Current time:", time.strftime("%Y-%m-%d %H:%M:%S %Z"))
 
 # Close connection
 cursor.close()
