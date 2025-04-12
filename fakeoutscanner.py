@@ -96,8 +96,8 @@ async def compare_highs(symbol, high, close):
     for row in rows:
         print(row[2])
         if high > row[2] and close < row[2]:
-            print(f'{symbol} faked out the high')
-            message = f'{symbol} just faked out a high'
+            print(f'{symbol} faked out the daily high')
+            message = f'{symbol} just faked out a daily high'
             tasks.append(send_telegram_message(message))  # Collect tasks
 
     await asyncio.gather(*tasks)  # Run all tasks concurrently
@@ -111,8 +111,8 @@ async def compare_lows(symbol, low, close):
     for row in rows:
         print(row[2])
         if low < row[2] and close > row[2]:
-            print(f'{symbol} faked out the low')
-            message = f'{symbol} just faked out a low'
+            print(f'{symbol} faked out the daily low')
+            message = f'{symbol} just faked out a daily low'
             tasks.append(send_telegram_message(message))  # Collect tasks
 
     await asyncio.gather(*tasks)  # Run all tasks concurrently
