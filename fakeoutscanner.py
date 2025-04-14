@@ -24,16 +24,16 @@ directions = ['high', 'low']
 
 
 # Create a table if it doesn’t exist
-def create_ohlc_table(symbol, direction):
-    cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {direction}_data{symbol} (
-            id SERIAL PRIMARY KEY,
-            symbol TEXT,
-            {direction} FLOAT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    conn.commit()
+# def create_ohlc_table(symbol, direction):
+#     cursor.execute(f"""
+#         CREATE TABLE IF NOT EXISTS {direction}_data{symbol} (
+#             id SERIAL PRIMARY KEY,
+#             symbol TEXT,
+#             {direction} FLOAT,
+#             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+#         )
+#     """)
+#     conn.commit()
 
 
 def store_daily_data(symbol, direction):
@@ -137,7 +137,6 @@ async def main():
     if time.localtime()[3] == 23:
         for symbol in symbols:
             for direction in directions:
-                create_ohlc_table(symbol, direction)
                 store_daily_data(symbol, direction)
             filter_highs(symbol)
             filter_lows(symbol)
