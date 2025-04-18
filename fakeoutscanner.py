@@ -99,7 +99,7 @@ async def compare_highs(symbol, high, close):
     rows = cursor.fetchall()
     tasks = []
 
-    for row in rows[-7:]
+    for row in rows[-7:]:
         print(row[2])
         if high > row[2] and close < row[2]:
             print(f'{symbol} faked out the daily high')
@@ -140,7 +140,7 @@ def h_ohlc(symbol):
 
 
 async def main():
-    if time.localtime()[3] == 23:
+    if time.localtime()[3] == 4: #23
         for symbol in symbols:
             for direction in directions:
                 store_daily_data(symbol, direction)
