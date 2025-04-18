@@ -140,7 +140,7 @@ def h_ohlc(symbol):
 
 
 async def main():
-    if time.localtime()[3] == 4: #23
+    if time.localtime()[3] == 23: #23
         for symbol in symbols:
             for direction in directions:
                 store_daily_data(symbol, direction)
