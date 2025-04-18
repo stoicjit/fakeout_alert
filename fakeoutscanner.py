@@ -58,12 +58,12 @@ def store_daily_data(symbol, direction):
         print(f"❌ Error storing {level} for {symbol} - {direction}: {e}")
 
     finally:
-        time.sleep(2)  # Prevent rate-limiting
+        time.sleep(1)  # Prevent rate-limiting
 
 
 def filter_highs(symbol):
     # Read data
-    cursor.execute(f"SELECT * FROM high_data{symbol}")
+    cursor.execute(f"SELECT * FROM high_data{symbol} ORDER BY timestamp ASC")
     rows = cursor.fetchall()
     # Keep the significant highs
     for row in rows[0:-1]:
@@ -77,7 +77,7 @@ def filter_highs(symbol):
 
 def filter_lows(symbol):
     # Read data
-    cursor.execute(f"SELECT * FROM low_data{symbol}")
+    cursor.execute(f"SELECT * FROM low_data{symbol} ORDER BY timestamp ASC")
     rows = cursor.fetchall()
     # Keep the significant levels
     for row in rows[0:-1]:
@@ -95,7 +95,7 @@ async def send_telegram_message(message):
 
 
 async def compare_highs(symbol, high, close):
-    cursor.execute(f"SELECT * FROM high_data{symbol}")
+    cursor.execute(f"SELECT * FROM high_data{symbol} ORDER BY timestamp ASC")
     rows = cursor.fetchall()
     tasks = []
 
@@ -110,7 +110,7 @@ async def compare_highs(symbol, high, close):
 
 
 async def compare_lows(symbol, low, close):
-    cursor.execute(f"SELECT * FROM low_data{symbol}")
+    cursor.execute(f"SELECT * FROM low_data{symbol} ORDER BY timestamp ASC")
     rows = cursor.fetchall()
     tasks = []
 
@@ -135,7 +135,7 @@ def h_ohlc(symbol):
     high = analysis.indicators.get("high", None)
     low = analysis.indicators.get("low", None)
     close = analysis.indicators.get("close", None)
-    time.sleep(3)
+    time.sleep(1)
     return high, low, close
 
 
