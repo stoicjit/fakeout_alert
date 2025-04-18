@@ -13,7 +13,7 @@ bot = Bot(token=bot_token)
 
 
 # PostgreSQL connection
-DB_URL = "postgresql://postgres:IBlWSdKzrIVmbcpiiSKoLXHDhRdOZuwj@metro.proxy.rlwy.net:44305/railway"  # Replace with your Railway PostgreSQL URL
+DB_URL = os.getenv('DB_URL')  # Replace with your Railway PostgreSQL URL
 conn = psycopg2.connect(DB_URL)
 cursor = conn.cursor()
 
@@ -37,23 +37,28 @@ directions = ['high', 'low']
 
 
 def store_daily_data(symbol, direction):
-    ta = TA_Handler(
-        symbol=symbol,
-        exchange=exchange,
-        screener="crypto",
-        interval=Interval.INTERVAL_1_DAY,
-    )
-    analysis = ta.get_analysis()
-    level = analysis.indicators.get(f"{direction}", None)
-    print(f"{symbol} - {direction}: {level}")
+    try:
+        ta = TA_Handler(
+            symbol=symbol,
+            exchange=exchange,
+            screener="crypto",
+            interval=Interval.INTERVAL_1_DAY,
+        )
+        analysis = ta.get_analysis()
+        level = analysis.indicators.get(f"{direction}", None)
+        print(f"{symbol} - {direction}: {level}")
+    
+        # Insert into PostgreSQL
+        cursor.execute(f"INSERT INTO {direction}_data{symbol} (symbol, {direction}) VALUES (%s, %s)",
+                       (symbol, level))
+    
+        conn.commit()
+        
+    except Exception as e:
+        print(f"❌ Error storing {level} for {symbol} - {direction}: {e}")
 
-    # Insert into PostgreSQL
-    cursor.execute(f"INSERT INTO {direction}_data{symbol} (symbol, {direction}) VALUES (%s, %s)",
-                   (symbol, level))
-
-    conn.commit()
-
-    time.sleep(2)  # Prevent rate-limiting
+    finally:
+        time.sleep(2)  # Prevent rate-limiting
 
 
 def filter_highs(symbol):
@@ -78,9 +83,10 @@ def filter_lows(symbol):
     for row in rows[0:-1]:
         if row[2] >= rows[-1][2]:
             row_id = row[0]
+            price = row[2]
             cursor.execute(f"DELETE FROM low_data{symbol} WHERE id = %s", (row_id,))
             conn.commit()
-            print(f"Deleted row with ID {row_id}!")
+            print(f"Deleted row {row_id}; Price: {price}")
 
 
 async def send_telegram_message(message):
@@ -93,7 +99,7 @@ async def compare_highs(symbol, high, close):
     rows = cursor.fetchall()
     tasks = []
 
-    for row in rows:
+    for row in rows[-7:]
         print(row[2])
         if high > row[2] and close < row[2]:
             print(f'{symbol} faked out the daily high')
@@ -108,7 +114,7 @@ async def compare_lows(symbol, low, close):
     rows = cursor.fetchall()
     tasks = []
 
-    for row in rows:
+    for row in rows[-7:]:
         print(row[2])
         if low < row[2] and close > row[2]:
             print(f'{symbol} faked out the daily low')
@@ -138,8 +144,11 @@ async def main():
         for symbol in symbols:
             for direction in directions:
                 store_daily_data(symbol, direction)
+                print(f"The {direction} of {symbol} has been stored")
             filter_highs(symbol)
+            print(f"The highs of {symbol}: filtered")
             filter_lows(symbol)
+            print(f"The lows of {symbol}: filtered")
 
     tasks = []  # Collect async tasks
     for symbol in symbols:
